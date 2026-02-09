@@ -46,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,11 +70,15 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setAdapter(adapter);
 
         // --- NAVIGATION CLICK LISTENERS ---
-        // Index 1 is "Categories", Index 2 is "Settings"
+        // Index 1 is "Categories"
         bottomNav.getChildAt(1).setOnClickListener(v -> {
-            startActivity(new Intent(MainActivity.this, CategoriesActivity.class));
+            Intent intent = new Intent(MainActivity.this, CategoriesActivity.class);
+            // This line sends your current subscription list to the Categories page
+            intent.putExtra("sub_list", new ArrayList<>(subList));
+            startActivity(intent);
         });
 
+        // Index 2 is "Settings"
         bottomNav.getChildAt(2).setOnClickListener(v -> {
             startActivity(new Intent(MainActivity.this, SettingsActivity.class));
         });
@@ -83,7 +88,6 @@ public class MainActivity extends AppCompatActivity {
         startClock();
         updateDashboardMetrics();
     }
-
     private void startClock() {
         final Handler handler = new Handler();
         handler.post(new Runnable() {

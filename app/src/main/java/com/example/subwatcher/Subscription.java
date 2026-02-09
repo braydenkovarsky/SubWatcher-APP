@@ -1,6 +1,8 @@
 package com.example.subwatcher;
 
-public class Subscription {
+import java.io.Serializable; // 1. Add this import
+
+public class Subscription implements Serializable { // 2. Add 'implements Serializable'
     private String name;
     private double price;
     private String cycle;
