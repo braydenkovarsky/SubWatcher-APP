@@ -5,29 +5,52 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg_dark"
-    android:padding="20dp">
+    android:fitsSystemWindows="true">
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideStart"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_begin="24dp" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideEnd"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_end="24dp" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideTop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_begin="24dp" />
 
     <TextView
         android:id="@+id/tvCurrentDate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Monday, Feb 9, 2026 / 3:04 PM"
+        android:text="Monday, Feb 9, 2026 / 4:15 PM"
         android:textColor="#9DA3A6"
         android:textSize="12sp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        android:letterSpacing="0.05"
+        app:layout_constraintStart_toStartOf="@id/guideStart"
+        app:layout_constraintTop_toTopOf="@id/guideTop" />
 
     <TextView
         android:id="@+id/tvBurnRateLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="16dp"
         android:text="BURN RATE"
         android:textColor="@color/neon_green"
-        android:textSize="18sp"
+        android:textSize="14sp"
         android:textStyle="bold"
-        app:layout_constraintTop_toBottomOf="@id/tvCurrentDate"
-        app:layout_constraintStart_toStartOf="parent" />
+        android:letterSpacing="0.1"
+        app:layout_constraintStart_toStartOf="@id/guideStart"
+        app:layout_constraintTop_toBottomOf="@id/tvCurrentDate" />
 
     <TextView
         android:id="@+id/tvTotalAmount"
@@ -35,55 +58,58 @@
         android:layout_height="wrap_content"
         android:text="$247.85 / MONTH"
         android:textColor="@color/white"
-        android:textSize="32sp"
+        android:textSize="34sp"
         android:textStyle="bold"
-        app:layout_constraintTop_toBottomOf="@id/tvBurnRateLabel"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="@id/guideStart"
+        app:layout_constraintTop_toBottomOf="@id/tvBurnRateLabel" />
 
     <TextView
         android:id="@+id/tvSubCount"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
         android:text="Total Subscriptions (12)"
         android:textColor="#9DA3A6"
         android:textSize="14sp"
-        app:layout_constraintTop_toBottomOf="@id/tvTotalAmount"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="@id/guideStart"
+        app:layout_constraintTop_toBottomOf="@id/tvTotalAmount" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvSubscriptions"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="24dp"
-        app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvSubCount" />
+        android:layout_marginTop="32dp"
+        android:clipToPadding="false"
+        android:paddingBottom="100dp"
+        app:layout_constraintStart_toStartOf="@id/guideStart"
+        app:layout_constraintEnd_toEndOf="@id/guideEnd"
+        app:layout_constraintTop_toBottomOf="@id/tvSubCount"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAdd"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
-        android:layout_marginBottom="24dp"
+        android:layout_marginBottom="32dp"
         android:src="@android:drawable/ic_input_add"
         app:backgroundTint="@color/neon_green"
         app:fabCustomSize="64dp"
         app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toEndOf="@id/guideEnd"
         app:tint="@color/bg_dark" />
 
     <LinearLayout
         android:id="@+id/bottomNavigation"
         android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:orientation="horizontal"
+        android:layout_height="70dp"
+        android:background="@android:color/transparent"
         android:gravity="center"
+        android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Dashboard" android:textColor="@color/white" android:gravity="center" android:textSize="10sp"/>
-        <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Categories" android:textColor="#9DA3A6" android:gravity="center" android:textSize="10sp"/>
-        <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Settings" android:textColor="#9DA3A6" android:gravity="center" android:textSize="10sp"/>
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="Dashboard" android:textColor="@color/white" android:textSize="11sp" android:textStyle="bold" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="Categories" android:textColor="#9DA3A6" android:textSize="11sp" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="Settings" android:textColor="#9DA3A6" android:textSize="11sp" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
