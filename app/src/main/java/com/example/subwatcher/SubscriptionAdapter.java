@@ -3,56 +3,58 @@ package com.example.subwatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import java.util.List;
 
 public class SubscriptionAdapter extends RecyclerView.Adapter<SubscriptionAdapter.ViewHolder> {
-    private List<Subscription> subscriptions;
 
-    public SubscriptionAdapter(List<Subscription> subscriptions) {
-        this.subscriptions = subscriptions;
+    private List<Subscription> subList;
+    private OnItemClickListener listener;
+
+    // Interface for click events
+    public interface OnItemClickListener {
+        void onItemClick(Subscription item, int position);
+    }
+
+    public SubscriptionAdapter(List<Subscription> subList, OnItemClickListener listener) {
+        this.subList = subList;
+        this.listener = listener;
     }
 
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_subscription, parent, false);
+        View view = LayoutInflater.from(parent.getContext()).inflate(android.R.layout.simple_list_item_2, parent, false);
         return new ViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        Subscription sub = subscriptions.get(position);
+        Subscription sub = subList.get(position);
+        holder.text1.setText(sub.getName());
+        holder.text2.setText(String.format("$%.2f - %s (%s)", sub.getPrice(), sub.getPlanType(), sub.getCategory()));
 
-        holder.name.setText(sub.getName());
-
-        // FIX: Changed sub.getCycle() to sub.getPlanType()
-        // Formatting the price string: e.g., "$139.00 / Yearly" or "$15.49 / Monthly"
-        String priceDisplay = String.format("$%.2f / %s", sub.getPrice(), sub.getPlanType());
-        holder.price.setText(priceDisplay);
-
-        // Optional: If you want to show the category as well
-        // holder.category.setText(sub.getCategory());
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onItemClick(sub, position);
+            }
+        });
     }
 
     @Override
     public int getItemCount() {
-        return subscriptions.size();
+        return subList.size();
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView name, price;
-        ImageView logo, notificationIcon;
+        TextView text1, text2;
 
-        public ViewHolder(View itemView) {
+        public ViewHolder(@NonNull View itemView) {
             super(itemView);
-            name = itemView.findViewById(R.id.tvSubName);
-            price = itemView.findViewById(R.id.tvSubPrice);
-            logo = itemView.findViewById(R.id.imgLogo);
-            notificationIcon = itemView.findViewById(R.id.imgNotification);
+            text1 = itemView.findViewById(android.R.id.text1);
+            text2 = itemView.findViewById(android.R.id.text2);
         }
     }
 }

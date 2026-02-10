@@ -1,5 +1,6 @@
 package com.example.subwatcher;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,32 +22,49 @@ public class CategoriesActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_categories);
 
-        // Link to your activity_categories.xml ID
+        // --- NAVIGATION LOGIC ---
+        setupNavigation();
+
         RecyclerView rvCategories = findViewById(R.id.rvCategories);
         rvCategories.setLayoutManager(new LinearLayoutManager(this));
 
-        // 1. Receive the list from MainActivity
         ArrayList<Subscription> subs = (ArrayList<Subscription>) getIntent().getSerializableExtra("sub_list");
-
         List<CategorySummary> summaryList = new ArrayList<>();
 
         if (subs != null) {
-            // 2. Group by category and sum prices
             Map<String, Double> categoryMap = new HashMap<>();
             for (Subscription s : subs) {
-                // Ensure category isn't null to avoid crashes
                 String cat = (s.getCategory() == null || s.getCategory().isEmpty()) ? "Other" : s.getCategory();
                 categoryMap.put(cat, categoryMap.getOrDefault(cat, 0.0) + s.getPrice());
             }
 
-            // 3. Convert map to list for display
             for (Map.Entry<String, Double> entry : categoryMap.entrySet()) {
                 summaryList.add(new CategorySummary(entry.getKey(), entry.getValue()));
             }
         }
 
-        // 4. Attach the adapter
         rvCategories.setAdapter(new CategoryAdapter(summaryList));
+    }
+
+    private void setupNavigation() {
+        TextView navDashboard = findViewById(R.id.navDashboard);
+        TextView navSettings = findViewById(R.id.navSettings);
+
+        navDashboard.setOnClickListener(v -> {
+            Intent intent = new Intent(this, MainActivity.class);
+            // This flag brings the existing Dashboard to the front instead of creating a new one
+            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+            startActivity(intent);
+            overridePendingTransition(0, 0); // No jumpy animation
+        });
+
+        navSettings.setOnClickListener(v -> {
+            // Check your Settings class name; usually it's SettingsActivity
+            Intent intent = new Intent(this, SettingsActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+            startActivity(intent);
+            overridePendingTransition(0, 0);
+        });
     }
 
     // Helper class to hold the category name and total
@@ -59,7 +77,6 @@ public class CategoriesActivity extends AppCompatActivity {
         }
     }
 
-    // The Adapter using your custom item_category.xml layout
     class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.ViewHolder> {
         private List<CategorySummary> data;
 
@@ -70,7 +87,6 @@ public class CategoriesActivity extends AppCompatActivity {
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            // Updated to use your custom layout file
             View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_category, parent, false);
             return new ViewHolder(v);
         }
@@ -91,7 +107,6 @@ public class CategoriesActivity extends AppCompatActivity {
             TextView tvName, tvTotal;
             ViewHolder(View v) {
                 super(v);
-                // Updated to match the IDs in item_category.xml
                 tvName = v.findViewById(R.id.tvCatName);
                 tvTotal = v.findViewById(R.id.tvCatTotal);
             }

@@ -8,23 +8,31 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.PopupMenu;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+
 import java.lang.reflect.Type;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -56,32 +64,26 @@ public class MainActivity extends AppCompatActivity {
         initializeServiceDB();
         createNotificationChannel();
 
-        // UI Initialization
         tvTotalAmount = findViewById(R.id.tvTotalAmount);
         tvSubCount = findViewById(R.id.tvSubCount);
         tvCurrentDate = findViewById(R.id.tvCurrentDate);
         RecyclerView recyclerView = findViewById(R.id.rvSubscriptions);
         FloatingActionButton fabAdd = findViewById(R.id.fabAdd);
-        LinearLayout bottomNav = findViewById(R.id.bottomNavigation);
+        ImageView ivSort = findViewById(R.id.ivSort);
 
-        // DATA LOADING: Load from storage.
         subList = loadSubscriptions();
 
-        // Recycler Setup
-        adapter = new SubscriptionAdapter(subList);
+        adapter = new SubscriptionAdapter(subList, (subscription, position) -> {
+            showSubscriptionActionDialog(subscription, position);
+        });
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
 
-        // Navigation listeners
-        bottomNav.getChildAt(1).setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, CategoriesActivity.class);
-            intent.putExtra("sub_list", new ArrayList<>(subList));
-            startActivity(intent);
-        });
+        if (ivSort != null) {
+            ivSort.setOnClickListener(this::showSortMenu);
+        }
 
-        bottomNav.getChildAt(2).setOnClickListener(v -> {
-            startActivity(new Intent(MainActivity.this, SettingsActivity.class));
-        });
+        setupNavigation();
 
         fabAdd.setOnClickListener(v -> showAddSubscriptionDialog());
 
@@ -89,10 +91,100 @@ public class MainActivity extends AppCompatActivity {
         updateDashboardMetrics();
     }
 
+    private void setupNavigation() {
+        TextView navDashboard = findViewById(R.id.navDashboard);
+        TextView navCategories = findViewById(R.id.navCategories);
+        TextView navSettings = findViewById(R.id.navSettings);
+
+        // Reset Dashboard scroll
+        if (navDashboard != null) {
+            navDashboard.setOnClickListener(v -> {
+                RecyclerView rv = findViewById(R.id.rvSubscriptions);
+                if (rv != null) rv.smoothScrollToPosition(0);
+            });
+        }
+
+        if (navCategories != null) {
+            navCategories.setOnClickListener(v -> {
+                Intent intent = new Intent(this, CategoriesActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                intent.putExtra("sub_list", new ArrayList<>(subList));
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+            });
+        }
+
+        if (navSettings != null) {
+            navSettings.setOnClickListener(v -> {
+                Intent intent = new Intent(this, SettingsActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+            });
+        }
+    }
+
+    private void showSortMenu(View v) {
+        PopupMenu popup = new PopupMenu(this, v);
+        popup.getMenu().add(0, 1, 0, "Sort A-Z");
+        popup.getMenu().add(0, 2, 0, "Sort Price (High-Low)");
+        popup.getMenu().add(0, 3, 0, "Sort Price (Low-High)");
+
+        popup.setOnMenuItemClickListener(item -> {
+            switch (item.getItemId()) {
+                case 1: sortSubscriptions(0); return true;
+                case 2: sortSubscriptions(1); return true;
+                case 3: sortSubscriptions(2); return true;
+                default: return false;
+            }
+        });
+        popup.show();
+    }
+
+    private void sortSubscriptions(int mode) {
+        if (mode == 0) {
+            Collections.sort(subList, (o1, o2) -> o1.getName().compareToIgnoreCase(o2.getName()));
+        } else if (mode == 1) {
+            Collections.sort(subList, (o1, o2) -> Double.compare(o2.getPrice(), o1.getPrice()));
+        } else if (mode == 2) {
+            Collections.sort(subList, (o1, o2) -> Double.compare(o1.getPrice(), o2.getPrice()));
+        }
+        adapter.notifyDataSetChanged();
+        saveSubscriptions();
+        Toast.makeText(this, "Sorted!", Toast.LENGTH_SHORT).show();
+    }
+
+    private void showSubscriptionActionDialog(Subscription sub, int position) {
+        String[] options = {"Duplicate", "Delete", "Cancel"};
+        new AlertDialog.Builder(this)
+                .setTitle(sub.getName() + " Options")
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) duplicateSub(sub, position);
+                    else if (which == 1) deleteSub(sub, position);
+                }).show();
+    }
+
+    private void duplicateSub(Subscription sub, int position) {
+        // Updated: Removed " (Copy)" suffix
+        Subscription copy = new Subscription(sub.getName(), sub.getPrice(), sub.getPlanType(), sub.getCategory());
+        subList.add(position + 1, copy);
+        adapter.notifyItemInserted(position + 1);
+        saveSubscriptions();
+        updateDashboardMetrics();
+        Toast.makeText(this, "Duplicated " + sub.getName(), Toast.LENGTH_SHORT).show();
+    }
+
+    private void deleteSub(Subscription sub, int position) {
+        subList.remove(position);
+        adapter.notifyItemRemoved(position);
+        adapter.notifyItemRangeChanged(position, subList.size());
+        saveSubscriptions();
+        updateDashboardMetrics();
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
-        // Sync with storage in case items were deleted in other activities
         ArrayList<Subscription> loaded = loadSubscriptions();
         subList.clear();
         subList.addAll(loaded);
@@ -103,31 +195,25 @@ public class MainActivity extends AppCompatActivity {
     private void saveSubscriptions() {
         SharedPreferences sharedPreferences = getSharedPreferences("sub_prefs", MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
-        Gson gson = new Gson();
-        String json = gson.toJson(subList);
-        editor.putString("sub_list", json);
+        editor.putString("sub_list", new Gson().toJson(subList));
         editor.apply();
     }
 
     private ArrayList<Subscription> loadSubscriptions() {
         SharedPreferences sharedPreferences = getSharedPreferences("sub_prefs", MODE_PRIVATE);
-        Gson gson = new Gson();
         String json = sharedPreferences.getString("sub_list", null);
         Type type = new TypeToken<ArrayList<Subscription>>() {}.getType();
-        ArrayList<Subscription> loadedList = gson.fromJson(json, type);
+        ArrayList<Subscription> loadedList = new Gson().fromJson(json, type);
         return (loadedList != null) ? loadedList : new ArrayList<>();
     }
 
-    private void startClock() {
-        final Handler handler = new Handler();
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                String time = new SimpleDateFormat("EEEE, MMM d, yyyy / h:mm a", Locale.getDefault()).format(new Date());
-                tvCurrentDate.setText(time);
-                handler.postDelayed(this, 1000);
-            }
-        });
+    private void updateDashboardMetrics() {
+        double monthlyBurnRate = 0;
+        for (Subscription s : subList) {
+            monthlyBurnRate += ("Yearly".equalsIgnoreCase(s.getPlanType())) ? (s.getPrice() / 12.0) : s.getPrice();
+        }
+        tvTotalAmount.setText(String.format("$%.2f / MONTH", monthlyBurnRate));
+        tvSubCount.setText("Total Subscriptions (" + subList.size() + ")");
     }
 
     private void showAddSubscriptionDialog() {
@@ -147,7 +233,7 @@ public class MainActivity extends AppCompatActivity {
         layout.addView(priceSpinner);
 
         final EditText inputCategory = new EditText(this);
-        inputCategory.setHint("Category");
+        inputCategory.setHint("Category (Streaming, Gaming...)");
         layout.addView(inputCategory);
 
         searchView.setOnItemClickListener((parent, view, position, id) -> {
@@ -162,63 +248,45 @@ public class MainActivity extends AppCompatActivity {
         builder.setView(layout);
         builder.setPositiveButton("Add", (dialog, which) -> {
             String name = searchView.getText().toString();
-            String cat = inputCategory.getText().toString();
+            if (priceSpinner.getSelectedItem() != null && !name.isEmpty()) {
+                String priceStr = priceSpinner.getSelectedItem().toString();
+                double price = Double.parseDouble(priceStr.split(" ")[0].replaceAll("[^\\d.]", ""));
+                String plan = priceStr.toLowerCase().contains("yearly") ? "Yearly" : "Monthly";
 
-            if (priceSpinner.getSelectedItem() != null) {
-                String selectedPriceStr = priceSpinner.getSelectedItem().toString();
-                double rawPrice = 0.0;
-                String planType = "Monthly";
-
-                // LOGIC: Check if selected plan is yearly
-                if (selectedPriceStr.toLowerCase().contains("yearly")) {
-                    planType = "Yearly";
-                }
-
-                try {
-                    rawPrice = Double.parseDouble(selectedPriceStr.split(" ")[0]);
-                } catch (Exception e) { rawPrice = 0.0; }
-
-                if (!name.isEmpty() && rawPrice > 0) {
-                    subList.add(new Subscription(name, rawPrice, planType, cat));
-                    saveSubscriptions();
-                    adapter.notifyItemInserted(subList.size() - 1);
-                    updateDashboardMetrics();
-                }
+                subList.add(new Subscription(name, price, plan, inputCategory.getText().toString()));
+                saveSubscriptions();
+                adapter.notifyItemInserted(subList.size() - 1);
+                updateDashboardMetrics();
             }
         });
         builder.show();
     }
 
-    private void updateDashboardMetrics() {
-        double monthlyBurnRate = 0;
-        for (Subscription s : subList) {
-            // PROPER MATH: Normalize yearly plans to a monthly value for the dashboard
-            if ("Yearly".equalsIgnoreCase(s.getPlanType())) {
-                monthlyBurnRate += (s.getPrice() / 12.0);
-            } else {
-                monthlyBurnRate += s.getPrice();
+    private void startClock() {
+        final Handler handler = new Handler();
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                tvCurrentDate.setText(new SimpleDateFormat("EEEE, MMM d, yyyy / h:mm a", Locale.getDefault()).format(new Date()));
+                handler.postDelayed(this, 1000);
             }
+        });
+    }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel("SUB_CHANNEL", "Alerts", NotificationManager.IMPORTANCE_DEFAULT);
+            ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).createNotificationChannel(channel);
         }
-        tvTotalAmount.setText(String.format("$%.2f / MONTH", monthlyBurnRate));
-        tvSubCount.setText("Total Subscriptions (" + subList.size() + ")");
     }
 
     private void addToDB(String name, String cat, String... prices) {
         serviceDatabase.put(name, new ServiceInfo(Arrays.asList(prices), cat));
     }
 
-    private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel("SUB_CHANNEL", "Alerts", NotificationManager.IMPORTANCE_DEFAULT);
-            NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-            if (manager != null) manager.createNotificationChannel(channel);
-        }
-    }
-
     private void initializeServiceDB() {
         serviceDatabase = new HashMap<>();
-
-        // --- VIDEO STREAMING ---
+        // ... (Database entries remain same as provided)
         addToDB("Netflix", "Streaming", "6.99 (Standard w/ Ads)", "15.49 (Standard)", "22.99 (Premium)");
         addToDB("Disney+", "Streaming", "7.99 (Basic w/ Ads)", "13.99 (Premium No Ads)", "19.99 (Duo Basic Hulu)", "24.99 (Trio Premium)");
         addToDB("Hulu", "Streaming", "7.99 (With Ads)", "17.99 (No Ads)", "76.99 (Live TV)");
@@ -250,8 +318,6 @@ public class MainActivity extends AppCompatActivity {
         addToDB("NBA League Pass", "Sports", "14.99 (Monthly)", "99.99 (Season)");
         addToDB("NFL+", "Sports", "6.99 (Monthly)", "14.99 (Premium)");
         addToDB("MLB.TV", "Sports", "29.99 (Monthly)", "149.99 (Yearly)");
-
-        // --- MUSIC & AUDIO ---
         addToDB("Spotify", "Music", "11.99 (Premium)", "16.99 (Duo)", "19.99 (Family)", "5.99 (Student)");
         addToDB("Apple Music", "Music", "10.99 (Individual)", "16.99 (Family)", "5.99 (Student)");
         addToDB("YouTube Music", "Music", "10.99 (Individual)", "16.99 (Family)");
@@ -269,8 +335,6 @@ public class MainActivity extends AppCompatActivity {
         addToDB("Idagio", "Music", "9.99 (Premium)", "14.99 (Premium+)");
         addToDB("Blinkist", "Education", "14.99 (Monthly)", "89.99 (Yearly)");
         addToDB("Scribd (Everand)", "Books", "11.99 (Monthly)");
-
-        // --- GAMING ---
         addToDB("Xbox Game Pass", "Gaming", "9.99 (Core)", "10.99 (Console)", "9.99 (PC)", "16.99 (Ultimate)");
         addToDB("PlayStation Plus", "Gaming", "9.99 (Essential)", "14.99 (Extra)", "17.99 (Premium)");
         addToDB("Nintendo Switch Online", "Gaming", "3.99 (Monthly)", "19.99 (Yearly)", "49.99 (Yearly + Expansion)");
@@ -294,8 +358,6 @@ public class MainActivity extends AppCompatActivity {
         addToDB("Old School RuneScape", "Gaming/MMO", "12.49 (Monthly)", "79.99 (Yearly)");
         addToDB("EVE Online", "Gaming/MMO", "19.99 (Omega)");
         addToDB("iRacing", "Gaming/Sim", "13.00 (Monthly)");
-
-        // --- PRODUCTIVITY & CLOUD ---
         addToDB("Microsoft 365", "Productivity", "6.99 (Personal)", "9.99 (Family)");
         addToDB("Google One", "Cloud", "1.99 (100GB)", "2.99 (200GB)", "9.99 (2TB)");
         addToDB("iCloud+", "Cloud", "0.99 (50GB)", "2.99 (200GB)", "9.99 (2TB)", "29.99 (6TB)");
@@ -322,8 +384,6 @@ public class MainActivity extends AppCompatActivity {
         addToDB("ClickUp", "Productivity", "10.00 (Unlimited)", "19.00 (Business)");
         addToDB("NordPass", "Security", "2.39 (Premium)", "3.69 (Family)");
         addToDB("Bitwarden", "Security", "10.00 (Premium Yearly)", "40.00 (Families Yearly)");
-
-        // --- NEWS & READING ---
         addToDB("NY Times", "News", "4.00 (Basic)", "25.00 (All Access)");
         addToDB("Washington Post", "News", "4.00 (Digital)", "12.00 (Premium)");
         addToDB("Wall Street Journal", "News", "38.99 (Digital Only)");
@@ -338,8 +398,6 @@ public class MainActivity extends AppCompatActivity {
         addToDB("The Economist", "News", "19.90 (Digital)", "26.50 (Digital + Print)");
         addToDB("Wired", "News", "5.00 (Digital Only)", "29.99 (Yearly)");
         addToDB("New Yorker", "News", "12.00 (Monthly)", "120.00 (Yearly)");
-
-        // --- LIFESTYLE, FITNESS & DATING ---
         addToDB("Peloton", "Fitness", "12.99 (App One)", "24.00 (App+)", "44.00 (All-Access)");
         addToDB("Duolingo", "Education", "6.99 (Super)", "9.99 (Max)");
         addToDB("Strava", "Fitness", "11.99 (Monthly)", "79.99 (Yearly)");
@@ -364,8 +422,6 @@ public class MainActivity extends AppCompatActivity {
         addToDB("Blue Apron", "Food", "60.95 (2 Serving)", "100.00 (4 Serving)");
         addToDB("Whoop", "Fitness", "30.00 (Monthly)", "239.00 (Yearly)");
         addToDB("Oura Ring", "Fitness", "5.99 (Membership)");
-
-        // --- SECURITY & UTILITIES ---
         addToDB("NordVPN", "Security", "12.99 (Monthly)", "4.99 (Yearly avg)");
         addToDB("ExpressVPN", "Security", "12.95 (Monthly)", "6.67 (Yearly avg)");
         addToDB("Surfshark", "Security", "12.95 (Monthly)", "3.99 (Yearly avg)");
@@ -378,8 +434,6 @@ public class MainActivity extends AppCompatActivity {
         addToDB("McAfee", "Security", "39.99 (Basic)", "119.99 (Advanced)");
         addToDB("Norton 360", "Security", "29.99 (Standard)", "49.99 (Deluxe)");
         addToDB("Malwarebytes", "Security", "3.75 (Standard)", "6.67 (Plus)");
-
-        // --- SHOPPING & MISC ---
         addToDB("Costco", "Shopping", "60.00 (Gold Star)", "120.00 (Executive)");
         addToDB("Walmart+", "Shopping", "12.95 (Monthly)", "98.00 (Yearly)");
         addToDB("Instacart+", "Shopping", "9.99 (Monthly)", "99.00 (Yearly)");

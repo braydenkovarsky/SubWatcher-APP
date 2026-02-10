@@ -2,10 +2,22 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg_dark"
     android:fitsSystemWindows="true">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@android:color/transparent"
+        app:title="SubWatcher"
+        app:titleTextColor="@color/white"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guideStart"
@@ -21,34 +33,28 @@
         android:orientation="vertical"
         app:layout_constraintGuide_end="24dp" />
 
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/guideTop"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        app:layout_constraintGuide_begin="24dp" />
-
     <TextView
         android:id="@+id/tvCurrentDate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Monday, Feb 9, 2026 / 4:15 PM"
+        android:layout_marginTop="8dp"
+        android:text="Monday, Feb 9"
         android:textColor="#9DA3A6"
         android:textSize="12sp"
         android:letterSpacing="0.05"
         app:layout_constraintStart_toStartOf="@id/guideStart"
-        app:layout_constraintTop_toTopOf="@id/guideTop" />
+        app:layout_constraintTop_toBottomOf="@id/toolbar" />
 
     <TextView
         android:id="@+id/tvBurnRateLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="BURN RATE"
+        android:text="MONTHLY BURN"
         android:textColor="@color/neon_green"
-        android:textSize="14sp"
+        android:textSize="12sp"
         android:textStyle="bold"
-        android:letterSpacing="0.1"
+        android:letterSpacing="0.15"
         app:layout_constraintStart_toStartOf="@id/guideStart"
         app:layout_constraintTop_toBottomOf="@id/tvCurrentDate" />
 
@@ -56,10 +62,10 @@
         android:id="@+id/tvTotalAmount"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="$247.85 / MONTH"
+        android:text="$0.00"
         android:textColor="@color/white"
-        android:textSize="34sp"
-        android:textStyle="bold"
+        android:textSize="42sp"
+        android:fontFamily="sans-serif-black"
         app:layout_constraintStart_toStartOf="@id/guideStart"
         app:layout_constraintTop_toBottomOf="@id/tvBurnRateLabel" />
 
@@ -67,34 +73,69 @@
         android:id="@+id/tvSubCount"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="Total Subscriptions (12)"
+        android:text="0 Active Subscriptions"
         android:textColor="#9DA3A6"
         android:textSize="14sp"
         app:layout_constraintStart_toStartOf="@id/guideStart"
         app:layout_constraintTop_toBottomOf="@id/tvTotalAmount" />
 
+    <View
+        android:id="@+id/divider"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:layout_marginTop="24dp"
+        android:background="#2A2A2A"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvSubCount" />
+
+    <TextView
+        android:id="@+id/tvListHeader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="Subscriptions"
+        android:textColor="@color/white"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintStart_toStartOf="@id/guideStart"
+        app:layout_constraintTop_toBottomOf="@id/divider" />
+
+    <ImageView
+        android:id="@+id/ivSort"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:src="@android:drawable/ic_menu_sort_by_size"
+        app:tint="@color/neon_green"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        app:layout_constraintEnd_toEndOf="@id/guideEnd"
+        app:layout_constraintTop_toTopOf="@id/tvListHeader"
+        app:layout_constraintBottom_toBottomOf="@id/tvListHeader"/>
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvSubscriptions"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="16dp"
         android:clipToPadding="false"
-        android:paddingBottom="100dp"
+        android:paddingBottom="80dp"
         app:layout_constraintStart_toStartOf="@id/guideStart"
         app:layout_constraintEnd_toEndOf="@id/guideEnd"
-        app:layout_constraintTop_toBottomOf="@id/tvSubCount"
+        app:layout_constraintTop_toBottomOf="@id/tvListHeader"
         app:layout_constraintBottom_toBottomOf="parent" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAdd"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="32dp"
+        android:layout_marginBottom="90dp"
         android:src="@android:drawable/ic_input_add"
         app:backgroundTint="@color/neon_green"
         app:fabCustomSize="64dp"
-        app:layout_constraintBottom_toTopOf="@id/bottomNavigation"
+        app:elevation="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="@id/guideEnd"
         app:tint="@color/bg_dark" />
 
@@ -107,9 +148,45 @@
         android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="Dashboard" android:textColor="@color/white" android:textSize="11sp" android:textStyle="bold" />
-        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="Categories" android:textColor="#9DA3A6" android:textSize="11sp" />
-        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="Settings" android:textColor="#9DA3A6" android:textSize="11sp" />
+        <TextView
+            android:id="@+id/navDashboard"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="Dashboard"
+            android:textColor="@color/white"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless" />
+
+        <TextView
+            android:id="@+id/navCategories"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="Categories"
+            android:textColor="#9DA3A6"
+            android:textSize="11sp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless" />
+
+        <TextView
+            android:id="@+id/navSettings"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="Settings"
+            android:textColor="#9DA3A6"
+            android:textSize="11sp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
