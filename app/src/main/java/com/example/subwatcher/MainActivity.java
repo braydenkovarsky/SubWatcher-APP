@@ -3,11 +3,11 @@ package com.example.subwatcher;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
-import android.content.Intent; // Needed for navigation
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.text.InputType;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
@@ -16,10 +16,12 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.NotificationCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import java.lang.reflect.Type;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,7 +33,7 @@ import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
-    private List<Subscription> subList;
+    private ArrayList<Subscription> subList;
     private SubscriptionAdapter adapter;
     private TextView tvTotalAmount, tvSubCount, tvCurrentDate;
     private Map<String, ServiceInfo> serviceDatabase;
@@ -46,13 +48,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        setupMassiveData();
+        initializeServiceDB();
         createNotificationChannel();
 
         // UI Initialization
@@ -63,22 +64,21 @@ public class MainActivity extends AppCompatActivity {
         FloatingActionButton fabAdd = findViewById(R.id.fabAdd);
         LinearLayout bottomNav = findViewById(R.id.bottomNavigation);
 
+        // DATA LOADING: Load from storage.
+        subList = loadSubscriptions();
+
         // Recycler Setup
-        subList = new ArrayList<>();
         adapter = new SubscriptionAdapter(subList);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(adapter);
 
-        // --- NAVIGATION CLICK LISTENERS ---
-        // Index 1 is "Categories"
+        // Navigation listeners
         bottomNav.getChildAt(1).setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, CategoriesActivity.class);
-            // This line sends your current subscription list to the Categories page
             intent.putExtra("sub_list", new ArrayList<>(subList));
             startActivity(intent);
         });
 
-        // Index 2 is "Settings"
         bottomNav.getChildAt(2).setOnClickListener(v -> {
             startActivity(new Intent(MainActivity.this, SettingsActivity.class));
         });
@@ -88,6 +88,36 @@ public class MainActivity extends AppCompatActivity {
         startClock();
         updateDashboardMetrics();
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Sync with storage in case items were deleted in other activities
+        ArrayList<Subscription> loaded = loadSubscriptions();
+        subList.clear();
+        subList.addAll(loaded);
+        adapter.notifyDataSetChanged();
+        updateDashboardMetrics();
+    }
+
+    private void saveSubscriptions() {
+        SharedPreferences sharedPreferences = getSharedPreferences("sub_prefs", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        Gson gson = new Gson();
+        String json = gson.toJson(subList);
+        editor.putString("sub_list", json);
+        editor.apply();
+    }
+
+    private ArrayList<Subscription> loadSubscriptions() {
+        SharedPreferences sharedPreferences = getSharedPreferences("sub_prefs", MODE_PRIVATE);
+        Gson gson = new Gson();
+        String json = sharedPreferences.getString("sub_list", null);
+        Type type = new TypeToken<ArrayList<Subscription>>() {}.getType();
+        ArrayList<Subscription> loadedList = gson.fromJson(json, type);
+        return (loadedList != null) ? loadedList : new ArrayList<>();
+    }
+
     private void startClock() {
         final Handler handler = new Handler();
         handler.post(new Runnable() {
@@ -133,26 +163,43 @@ public class MainActivity extends AppCompatActivity {
         builder.setPositiveButton("Add", (dialog, which) -> {
             String name = searchView.getText().toString();
             String cat = inputCategory.getText().toString();
-            double price = 0.0;
-            if (priceSpinner.getSelectedItem() != null) {
-                try {
-                    price = Double.parseDouble(priceSpinner.getSelectedItem().toString().split(" ")[0]);
-                } catch (Exception e) { price = 0.0; }
-            }
 
-            if (!name.isEmpty() && price > 0) {
-                subList.add(new Subscription(name, price, "Monthly", cat));
-                adapter.notifyItemInserted(subList.size() - 1);
-                updateDashboardMetrics();
+            if (priceSpinner.getSelectedItem() != null) {
+                String selectedPriceStr = priceSpinner.getSelectedItem().toString();
+                double rawPrice = 0.0;
+                String planType = "Monthly";
+
+                // LOGIC: Check if selected plan is yearly
+                if (selectedPriceStr.toLowerCase().contains("yearly")) {
+                    planType = "Yearly";
+                }
+
+                try {
+                    rawPrice = Double.parseDouble(selectedPriceStr.split(" ")[0]);
+                } catch (Exception e) { rawPrice = 0.0; }
+
+                if (!name.isEmpty() && rawPrice > 0) {
+                    subList.add(new Subscription(name, rawPrice, planType, cat));
+                    saveSubscriptions();
+                    adapter.notifyItemInserted(subList.size() - 1);
+                    updateDashboardMetrics();
+                }
             }
         });
         builder.show();
     }
 
     private void updateDashboardMetrics() {
-        double total = 0;
-        for (Subscription s : subList) total += s.getPrice();
-        tvTotalAmount.setText(String.format("$%.2f / MONTH", total));
+        double monthlyBurnRate = 0;
+        for (Subscription s : subList) {
+            // PROPER MATH: Normalize yearly plans to a monthly value for the dashboard
+            if ("Yearly".equalsIgnoreCase(s.getPlanType())) {
+                monthlyBurnRate += (s.getPrice() / 12.0);
+            } else {
+                monthlyBurnRate += s.getPrice();
+            }
+        }
+        tvTotalAmount.setText(String.format("$%.2f / MONTH", monthlyBurnRate));
         tvSubCount.setText("Total Subscriptions (" + subList.size() + ")");
     }
 
@@ -168,7 +215,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void setupMassiveData() {
+    private void initializeServiceDB() {
         serviceDatabase = new HashMap<>();
 
         // --- VIDEO STREAMING ---
@@ -352,6 +399,5 @@ public class MainActivity extends AppCompatActivity {
 
         serviceNames = serviceDatabase.keySet().toArray(new String[0]);
         Arrays.sort(serviceNames);
-    } // Closes setupMassiveData method
-
+    }
 }

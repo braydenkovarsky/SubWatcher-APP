@@ -29,12 +29,13 @@ public class SubscriptionAdapter extends RecyclerView.Adapter<SubscriptionAdapte
 
         holder.name.setText(sub.getName());
 
-        // Formatting the price string to match your design: "$22.99 / Monthly"
-        String priceDisplay = String.format("$%.2f / %s", sub.getPrice(), sub.getCycle());
+        // FIX: Changed sub.getCycle() to sub.getPlanType()
+        // Formatting the price string: e.g., "$139.00 / Yearly" or "$15.49 / Monthly"
+        String priceDisplay = String.format("$%.2f / %s", sub.getPrice(), sub.getPlanType());
         holder.price.setText(priceDisplay);
 
-        // Optional: Logic to change icon based on category could go here
-        // holder.logo.setImageResource(R.drawable.some_icon);
+        // Optional: If you want to show the category as well
+        // holder.category.setText(sub.getCategory());
     }
 
     @Override
