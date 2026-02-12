@@ -39,48 +39,190 @@
         app:layout_constraintTop_toTopOf="@id/guideTop"
         app:layout_constraintStart_toStartOf="@id/guideStart" />
 
-    <LinearLayout
+    <androidx.core.widget.NestedScrollView
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:layout_marginTop="32dp"
-        android:orientation="vertical"
+        android:clipToPadding="false"
+        android:paddingBottom="100dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="@id/guideEnd"
         app:layout_constraintStart_toStartOf="@id/guideStart"
         app:layout_constraintTop_toBottomOf="@id/tvSettingsHeader">
 
-        <androidx.cardview.widget.CardView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardBackgroundColor="#252A2C"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="0dp">
+            android:orientation="vertical">
 
-            <androidx.appcompat.widget.SwitchCompat
-                android:id="@+id/switchNotifications"
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SYSTEM &amp; SECURITY"
+                android:textColor="@color/neon_green"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp"
+                android:letterSpacing="0.1" />
+
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:padding="16dp"
-                android:text="Enable Notifications"
-                android:textColor="@color/white"
-                android:textSize="16sp"
-                app:thumbTint="@color/neon_green"
-                app:trackTint="#4DFFFFFF" />
-        </androidx.cardview.widget.CardView>
+                android:layout_marginBottom="24dp"
+                app:cardBackgroundColor="#252A2C"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp">
 
-        <Button
-            android:id="@+id/btnClearAll"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:backgroundTint="#FF4B4B"
-            android:text="Delete All Data"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            app:cornerRadius="12dp" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
-    </LinearLayout>
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/switchDarkMode"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="16dp"
+                        android:text="Force Dark Mode"
+                        android:checked="true"
+                        android:textColor="@color/white"
+                        android:textSize="16sp"
+                        app:thumbTint="@color/neon_green"
+                        app:trackTint="#4DFFFFFF" />
+
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1AFFFFFF" android:layout_marginHorizontal="16dp"/>
+
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/switchBiometrics"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="16dp"
+                        android:text="App Lock (Biometric/PIN)"
+                        android:textColor="@color/white"
+                        android:textSize="16sp"
+                        app:thumbTint="@color/neon_green"
+                        app:trackTint="#4DFFFFFF" />
+
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1AFFFFFF" android:layout_marginHorizontal="16dp"/>
+
+                    <LinearLayout
+                        android:id="@+id/layoutCustomPassword"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:id="@+id/btnSetPassword"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Set Custom App Password"
+                            android:textColor="@color/white"
+                            android:textSize="16sp"
+                            android:background="?attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Used if biometrics are unavailable"
+                            android:textColor="#80FFFFFF"
+                            android:textSize="12sp"
+                            android:layout_marginTop="4dp" />
+                    </LinearLayout>
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="DATA &amp; BACKUP"
+                android:textColor="@color/neon_green"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp"
+                android:letterSpacing="0.1" />
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                app:cardBackgroundColor="#252A2C"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/btnExport"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="16dp"
+                        android:text="Export to CSV"
+                        android:textColor="@color/white"
+                        android:textSize="16sp"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1AFFFFFF" android:layout_marginHorizontal="16dp"/>
+
+                    <TextView
+                        android:id="@+id/btnImport"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="16dp"
+                        android:text="Import from Backup"
+                        android:textColor="@color/white"
+                        android:textSize="16sp"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <Button
+                android:id="@+id/btnClearAll"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginBottom="32dp"
+                android:backgroundTint="#33FF4B4B"
+                android:text="Wipe All Subscriptions"
+                android:textAllCaps="false"
+                android:textColor="#FF4B4B"
+                app:cornerRadius="12dp"
+                app:strokeColor="#FF4B4B"
+                app:strokeWidth="1dp" />
+
+            <TextView
+                android:id="@+id/btnSupport"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:padding="8dp"
+                android:text="Contact Support"
+                android:textColor="@color/neon_green"
+                android:textSize="14sp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:layout_marginTop="8dp"
+                android:text="SubWatcher v1.0.2"
+                android:textColor="#66FFFFFF"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
     <LinearLayout
         android:id="@+id/bottomNavigation"
@@ -90,46 +232,9 @@
         android:gravity="center"
         android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent">
-
-        <TextView
-            android:id="@+id/navDashboard"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="Dashboard"
-            android:textColor="#9DA3A6"
-            android:textSize="11sp"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackgroundBorderless" />
-
-        <TextView
-            android:id="@+id/navCategories"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="Categories"
-            android:textColor="#9DA3A6"
-            android:textSize="11sp"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackgroundBorderless" />
-
-        <TextView
-            android:id="@+id/navSettings"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="Settings"
-            android:textColor="@color/white"
-            android:textStyle="bold"
-            android:textSize="11sp"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackgroundBorderless" />
+        <TextView android:id="@+id/navDashboard" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="Dashboard" android:textColor="#9DA3A6" android:textSize="11sp" android:clickable="true" android:background="?attr/selectableItemBackgroundBorderless" />
+        <TextView android:id="@+id/navCategories" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="Categories" android:textColor="#9DA3A6" android:textSize="11sp" android:clickable="true" android:background="?attr/selectableItemBackgroundBorderless" />
+        <TextView android:id="@+id/navSettings" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="Settings" android:textColor="@color/white" android:textStyle="bold" android:textSize="11sp" android:clickable="true" android:background="?attr/selectableItemBackgroundBorderless" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

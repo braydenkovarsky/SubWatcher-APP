@@ -1,5 +1,6 @@
 package com.example.subwatcher;
 
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,7 +14,6 @@ public class SubscriptionAdapter extends RecyclerView.Adapter<SubscriptionAdapte
     private List<Subscription> subList;
     private OnItemClickListener listener;
 
-    // Interface for click events
     public interface OnItemClickListener {
         void onItemClick(Subscription item, int position);
     }
@@ -26,6 +26,7 @@ public class SubscriptionAdapter extends RecyclerView.Adapter<SubscriptionAdapte
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        // We still use simple_list_item_2 for now, but we force the colors below
         View view = LayoutInflater.from(parent.getContext()).inflate(android.R.layout.simple_list_item_2, parent, false);
         return new ViewHolder(view);
     }
@@ -33,8 +34,14 @@ public class SubscriptionAdapter extends RecyclerView.Adapter<SubscriptionAdapte
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Subscription sub = subList.get(position);
+
+        // Force White for Title
         holder.text1.setText(sub.getName());
+        holder.text1.setTextColor(Color.WHITE);
+
+        // Force Light Gray/White for Subtitle
         holder.text2.setText(String.format("$%.2f - %s (%s)", sub.getPrice(), sub.getPlanType(), sub.getCategory()));
+        holder.text2.setTextColor(Color.parseColor("#B0B0B0"));
 
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {

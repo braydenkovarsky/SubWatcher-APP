@@ -20,6 +20,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -58,6 +59,11 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // --- FORCE DARK MODE ---
+        // This must be called before super.onCreate to ensure the
+        // theme is applied before views are inflated.
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -96,7 +102,6 @@ public class MainActivity extends AppCompatActivity {
         TextView navCategories = findViewById(R.id.navCategories);
         TextView navSettings = findViewById(R.id.navSettings);
 
-        // Reset Dashboard scroll
         if (navDashboard != null) {
             navDashboard.setOnClickListener(v -> {
                 RecyclerView rv = findViewById(R.id.rvSubscriptions);
@@ -165,7 +170,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void duplicateSub(Subscription sub, int position) {
-        // Updated: Removed " (Copy)" suffix
         Subscription copy = new Subscription(sub.getName(), sub.getPrice(), sub.getPlanType(), sub.getCategory());
         subList.add(position + 1, copy);
         adapter.notifyItemInserted(position + 1);
@@ -217,25 +221,73 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showAddSubscriptionDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Add Subscription");
+        // 1. Root Container
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(60, 60, 60, 60);
+        root.setBackgroundResource(R.drawable.dialog_background_rounded); // Use your solid file
 
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(60, 40, 60, 10);
+        // 2. Title
+        TextView title = new TextView(this);
+        title.setText("Add Subscription");
+        title.setTextColor(android.graphics.Color.WHITE);
+        title.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 22);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        title.setPadding(0, 0, 0, 40);
+        root.addView(title);
 
+        // 3. Inputs
         final AutoCompleteTextView searchView = new AutoCompleteTextView(this);
         searchView.setHint("Search Service");
+        searchView.setHintTextColor(android.graphics.Color.GRAY);
+        searchView.setTextColor(android.graphics.Color.WHITE);
+        searchView.setDropDownBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.parseColor("#121212")));
         searchView.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, serviceNames));
-        layout.addView(searchView);
+        root.addView(searchView);
 
         final Spinner priceSpinner = new Spinner(this);
-        layout.addView(priceSpinner);
+        priceSpinner.setPadding(0, 30, 0, 30);
+        root.addView(priceSpinner);
 
         final EditText inputCategory = new EditText(this);
-        inputCategory.setHint("Category (Streaming, Gaming...)");
-        layout.addView(inputCategory);
+        inputCategory.setHint("Category");
+        inputCategory.setHintTextColor(android.graphics.Color.GRAY);
+        inputCategory.setTextColor(android.graphics.Color.WHITE);
+        root.addView(inputCategory);
 
+        // 4. Manual Button Row (This fixes the "outside the box" look)
+        LinearLayout buttonRow = new LinearLayout(this);
+        buttonRow.setOrientation(LinearLayout.HORIZONTAL);
+        buttonRow.setGravity(android.view.Gravity.END);
+        buttonRow.setPadding(0, 50, 0, 0);
+
+        TextView btnCancel = new TextView(this);
+        btnCancel.setText("CANCEL");
+        btnCancel.setTextColor(android.graphics.Color.WHITE);
+        btnCancel.setPadding(40, 20, 40, 20);
+        btnCancel.setTypeface(null, android.graphics.Typeface.BOLD);
+
+        TextView btnAdd = new TextView(this);
+        btnAdd.setText("ADD");
+        btnAdd.setTextColor(android.graphics.Color.parseColor("#39FF14")); // Neon Green
+        btnAdd.setPadding(40, 20, 20, 20);
+        btnAdd.setTypeface(null, android.graphics.Typeface.BOLD);
+
+        buttonRow.addView(btnCancel);
+        buttonRow.addView(btnAdd);
+        root.addView(buttonRow);
+
+        // 5. Create Dialog
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(root)
+                .create();
+
+        // Remove the system's ghost frame
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+        }
+
+        // Input logic
         searchView.setOnItemClickListener((parent, view, position, id) -> {
             String selected = (String) parent.getItemAtPosition(position);
             ServiceInfo info = serviceDatabase.get(selected);
@@ -245,8 +297,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        builder.setView(layout);
-        builder.setPositiveButton("Add", (dialog, which) -> {
+        btnAdd.setOnClickListener(v -> {
             String name = searchView.getText().toString();
             if (priceSpinner.getSelectedItem() != null && !name.isEmpty()) {
                 String priceStr = priceSpinner.getSelectedItem().toString();
@@ -257,9 +308,13 @@ public class MainActivity extends AppCompatActivity {
                 saveSubscriptions();
                 adapter.notifyItemInserted(subList.size() - 1);
                 updateDashboardMetrics();
+                dialog.dismiss();
             }
         });
-        builder.show();
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
     }
 
     private void startClock() {
@@ -286,7 +341,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void initializeServiceDB() {
         serviceDatabase = new HashMap<>();
-        // ... (Database entries remain same as provided)
+        // --- VIDEO STREAMING ---
         addToDB("Netflix", "Streaming", "6.99 (Standard w/ Ads)", "15.49 (Standard)", "22.99 (Premium)");
         addToDB("Disney+", "Streaming", "7.99 (Basic w/ Ads)", "13.99 (Premium No Ads)", "19.99 (Duo Basic Hulu)", "24.99 (Trio Premium)");
         addToDB("Hulu", "Streaming", "7.99 (With Ads)", "17.99 (No Ads)", "76.99 (Live TV)");
@@ -318,6 +373,8 @@ public class MainActivity extends AppCompatActivity {
         addToDB("NBA League Pass", "Sports", "14.99 (Monthly)", "99.99 (Season)");
         addToDB("NFL+", "Sports", "6.99 (Monthly)", "14.99 (Premium)");
         addToDB("MLB.TV", "Sports", "29.99 (Monthly)", "149.99 (Yearly)");
+
+        // --- MUSIC & AUDIO ---
         addToDB("Spotify", "Music", "11.99 (Premium)", "16.99 (Duo)", "19.99 (Family)", "5.99 (Student)");
         addToDB("Apple Music", "Music", "10.99 (Individual)", "16.99 (Family)", "5.99 (Student)");
         addToDB("YouTube Music", "Music", "10.99 (Individual)", "16.99 (Family)");
@@ -335,6 +392,8 @@ public class MainActivity extends AppCompatActivity {
         addToDB("Idagio", "Music", "9.99 (Premium)", "14.99 (Premium+)");
         addToDB("Blinkist", "Education", "14.99 (Monthly)", "89.99 (Yearly)");
         addToDB("Scribd (Everand)", "Books", "11.99 (Monthly)");
+
+        // --- GAMING ---
         addToDB("Xbox Game Pass", "Gaming", "9.99 (Core)", "10.99 (Console)", "9.99 (PC)", "16.99 (Ultimate)");
         addToDB("PlayStation Plus", "Gaming", "9.99 (Essential)", "14.99 (Extra)", "17.99 (Premium)");
         addToDB("Nintendo Switch Online", "Gaming", "3.99 (Monthly)", "19.99 (Yearly)", "49.99 (Yearly + Expansion)");
@@ -358,6 +417,8 @@ public class MainActivity extends AppCompatActivity {
         addToDB("Old School RuneScape", "Gaming/MMO", "12.49 (Monthly)", "79.99 (Yearly)");
         addToDB("EVE Online", "Gaming/MMO", "19.99 (Omega)");
         addToDB("iRacing", "Gaming/Sim", "13.00 (Monthly)");
+
+        // --- PRODUCTIVITY & CLOUD ---
         addToDB("Microsoft 365", "Productivity", "6.99 (Personal)", "9.99 (Family)");
         addToDB("Google One", "Cloud", "1.99 (100GB)", "2.99 (200GB)", "9.99 (2TB)");
         addToDB("iCloud+", "Cloud", "0.99 (50GB)", "2.99 (200GB)", "9.99 (2TB)", "29.99 (6TB)");
@@ -384,6 +445,8 @@ public class MainActivity extends AppCompatActivity {
         addToDB("ClickUp", "Productivity", "10.00 (Unlimited)", "19.00 (Business)");
         addToDB("NordPass", "Security", "2.39 (Premium)", "3.69 (Family)");
         addToDB("Bitwarden", "Security", "10.00 (Premium Yearly)", "40.00 (Families Yearly)");
+
+        // --- NEWS & READING ---
         addToDB("NY Times", "News", "4.00 (Basic)", "25.00 (All Access)");
         addToDB("Washington Post", "News", "4.00 (Digital)", "12.00 (Premium)");
         addToDB("Wall Street Journal", "News", "38.99 (Digital Only)");
@@ -398,6 +461,8 @@ public class MainActivity extends AppCompatActivity {
         addToDB("The Economist", "News", "19.90 (Digital)", "26.50 (Digital + Print)");
         addToDB("Wired", "News", "5.00 (Digital Only)", "29.99 (Yearly)");
         addToDB("New Yorker", "News", "12.00 (Monthly)", "120.00 (Yearly)");
+
+        // --- LIFESTYLE, FITNESS & DATING ---
         addToDB("Peloton", "Fitness", "12.99 (App One)", "24.00 (App+)", "44.00 (All-Access)");
         addToDB("Duolingo", "Education", "6.99 (Super)", "9.99 (Max)");
         addToDB("Strava", "Fitness", "11.99 (Monthly)", "79.99 (Yearly)");
@@ -422,6 +487,8 @@ public class MainActivity extends AppCompatActivity {
         addToDB("Blue Apron", "Food", "60.95 (2 Serving)", "100.00 (4 Serving)");
         addToDB("Whoop", "Fitness", "30.00 (Monthly)", "239.00 (Yearly)");
         addToDB("Oura Ring", "Fitness", "5.99 (Membership)");
+
+        // --- SECURITY & UTILITIES ---
         addToDB("NordVPN", "Security", "12.99 (Monthly)", "4.99 (Yearly avg)");
         addToDB("ExpressVPN", "Security", "12.95 (Monthly)", "6.67 (Yearly avg)");
         addToDB("Surfshark", "Security", "12.95 (Monthly)", "3.99 (Yearly avg)");
@@ -434,6 +501,8 @@ public class MainActivity extends AppCompatActivity {
         addToDB("McAfee", "Security", "39.99 (Basic)", "119.99 (Advanced)");
         addToDB("Norton 360", "Security", "29.99 (Standard)", "49.99 (Deluxe)");
         addToDB("Malwarebytes", "Security", "3.75 (Standard)", "6.67 (Plus)");
+
+        // --- SHOPPING & MISC ---
         addToDB("Costco", "Shopping", "60.00 (Gold Star)", "120.00 (Executive)");
         addToDB("Walmart+", "Shopping", "12.95 (Monthly)", "98.00 (Yearly)");
         addToDB("Instacart+", "Shopping", "9.99 (Monthly)", "99.00 (Yearly)");
