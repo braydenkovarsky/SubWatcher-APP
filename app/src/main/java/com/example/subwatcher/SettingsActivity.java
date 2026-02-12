@@ -8,6 +8,8 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.InputType;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -74,7 +76,6 @@ public class SettingsActivity extends AppCompatActivity {
                     if (isChecked) {
                         checkAndEnableBiometrics();
                     } else {
-                        // Disable Security
                         settingsPrefs.edit()
                                 .putBoolean("use_biometrics", false)
                                 .putString("app_password_hash", "")
@@ -115,14 +116,45 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
 
-    // --- SECURITY UTILS ---
+    // --- NAVIGATION LOGIC (REORDER TO FRONT FIX) ---
+    private void setupNavigation() {
+        TextView navDashboard = findViewById(R.id.navDashboard);
+        TextView navCategories = findViewById(R.id.navCategories);
 
-    // Replace your generateRecoveryKey and hashPassword methods with these
+        if (navDashboard != null) {
+            navDashboard.setOnClickListener(v -> {
+                Intent intent = new Intent(this, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+            });
+        }
+
+        if (navCategories != null) {
+            navCategories.setOnClickListener(v -> {
+                Intent intent = new Intent(this, CategoriesActivity.class);
+
+                // DATA RECOVERY: Ensure the sub_list is passed from SharedPreferences
+                SharedPreferences subPrefs = getSharedPreferences("sub_prefs", MODE_PRIVATE);
+                String json = subPrefs.getString("sub_list", null);
+                if (json != null) {
+                    Gson gson = new Gson();
+                    Type type = new TypeToken<ArrayList<Subscription>>() {}.getType();
+                    ArrayList<Subscription> list = gson.fromJson(json, type);
+                    intent.putExtra("sub_list", list);
+                }
+
+                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+            });
+        }
+    }
+
+    // --- SECURITY UTILS ---
     private String hashPassword(String password) {
         try {
-            // STRICT CLEANING: Remove everything except letters and numbers
             String clean = password.replaceAll("[^a-zA-Z0-9]", "").toUpperCase().trim();
-
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] encodedHash = digest.digest(clean.getBytes(StandardCharsets.UTF_8));
             StringBuilder hexString = new StringBuilder();
@@ -138,7 +170,6 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void generateRecoveryKey() {
-        // 1. Generate the 16-char alphanumeric key (No dashes)
         String chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         StringBuilder sb = new StringBuilder();
         Random rnd = new Random();
@@ -147,74 +178,60 @@ public class SettingsActivity extends AppCompatActivity {
         }
         String recoveryKey = sb.toString();
 
-        // 2. Initial Auto-Copy to Clipboard
         ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
         ClipData clip = ClipData.newPlainText("SubWatcher Recovery Key", recoveryKey);
         clipboard.setPrimaryClip(clip);
 
-        // 3. Inflate the custom styled layout
-        android.view.LayoutInflater inflater = getLayoutInflater();
-        android.view.View dialogView = inflater.inflate(R.layout.dialog_recovery_key, null);
+        LayoutInflater inflater = getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.dialog_recovery_key, null);
 
         AlertDialog dialog = new AlertDialog.Builder(this, R.style.CustomDialogTheme)
                 .setView(dialogView)
-                .setCancelable(false) // User MUST save it
+                .setCancelable(false)
                 .create();
 
-        // 4. Initialize Views
         TextView tvKey = dialogView.findViewById(R.id.tvRecoveryKeyDisplay);
         Button btnCopy = dialogView.findViewById(R.id.btnCopyAgain);
         Button btnDone = dialogView.findViewById(R.id.btnDone);
 
         tvKey.setText(recoveryKey);
 
-        // 5. Button Logic
         btnCopy.setOnClickListener(v -> {
             clipboard.setPrimaryClip(clip);
             Toast.makeText(this, "Copied to clipboard!", Toast.LENGTH_SHORT).show();
         });
 
         btnDone.setOnClickListener(v -> {
-            // Hash and save using the aggressive cleaner
             String hashedKey = hashPassword(recoveryKey);
             settingsPrefs.edit().putString("recovery_key_hash", hashedKey).apply();
-
             Toast.makeText(this, "Security Setup Complete", Toast.LENGTH_SHORT).show();
             dialog.dismiss();
         });
 
-        // 6. Make background transparent for rounded corners
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
         }
-
         dialog.show();
     }
 
     private void showCustomPasswordDialog() {
-        // 1. Inflate the custom layout you created
-        android.view.LayoutInflater inflater = getLayoutInflater();
-        android.view.View dialogView = inflater.inflate(R.layout.dialog_set_password, null);
+        LayoutInflater inflater = getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.dialog_set_password, null);
 
-        // 2. Build the dialog using your CustomDialogTheme
         AlertDialog dialog = new AlertDialog.Builder(this, R.style.CustomDialogTheme)
                 .setView(dialogView)
                 .create();
 
-        // 3. Initialize the views inside the custom layout
         EditText input = dialogView.findViewById(R.id.etPasswordInput);
         Button btnSave = dialogView.findViewById(R.id.btnSave);
         Button btnCancel = dialogView.findViewById(R.id.btnCancel);
 
-        // 4. Handle the SAVE logic
         btnSave.setOnClickListener(v -> {
             String password = input.getText().toString();
-
             if (password.length() < 4) {
                 Toast.makeText(this, "Password must be at least 4 characters", Toast.LENGTH_SHORT).show();
             } else {
                 try {
-                    // Hash the password (Simple hash, no aggressive cleaning like recovery keys)
                     MessageDigest digest = MessageDigest.getInstance("SHA-256");
                     byte[] encodedHash = digest.digest(password.getBytes(StandardCharsets.UTF_8));
                     StringBuilder hexString = new StringBuilder();
@@ -224,35 +241,27 @@ public class SettingsActivity extends AppCompatActivity {
                         hexString.append(hex);
                     }
 
-                    // Save to SharedPreferences
                     settingsPrefs.edit()
                             .putString("app_password_hash", hexString.toString())
                             .putBoolean("use_biometrics", true)
                             .apply();
 
-                    // Update the UI switch
                     SwitchCompat sw = findViewById(R.id.switchBiometrics);
                     if (sw != null) sw.setChecked(true);
 
                     dialog.dismiss();
-
-                    // Move to the next step
                     generateRecoveryKey();
-
                 } catch (Exception e) {
                     Toast.makeText(this, "Error saving password", Toast.LENGTH_SHORT).show();
                 }
             }
         });
 
-        // 5. Handle the CANCEL logic
         btnCancel.setOnClickListener(v -> dialog.dismiss());
 
-        // 6. Mandatory for rounded corners: Make the dialog window background transparent
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
         }
-
         dialog.show();
     }
 
@@ -303,7 +312,6 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     // --- DATA MANAGEMENT ---
-
     private void exportToCSV() {
         SharedPreferences subPrefs = getSharedPreferences("sub_prefs", MODE_PRIVATE);
         String json = subPrefs.getString("sub_list", null);
@@ -355,7 +363,7 @@ public class SettingsActivity extends AppCompatActivity {
             InputStream is = getContentResolver().openInputStream(uri);
             BufferedReader reader = new BufferedReader(new InputStreamReader(is));
             ArrayList<Subscription> importedList = new ArrayList<>();
-            String line = reader.readLine();
+            String line = reader.readLine(); // Skip header
             while ((line = reader.readLine()) != null) {
                 String[] p = line.split(",");
                 if (p.length >= 4) {
@@ -364,17 +372,15 @@ public class SettingsActivity extends AppCompatActivity {
             }
             getSharedPreferences("sub_prefs", MODE_PRIVATE).edit()
                     .putString("sub_list", new Gson().toJson(importedList)).apply();
-            startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+
+            // Navigate to Dashboard after import
+            Intent intent = new Intent(this, MainActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            finish();
         } catch (Exception e) {
             Toast.makeText(this, "Import failed", Toast.LENGTH_SHORT).show();
         }
-    }
-
-    private void setupNavigation() {
-        TextView navDashboard = findViewById(R.id.navDashboard);
-        TextView navCategories = findViewById(R.id.navCategories);
-        if (navDashboard != null) navDashboard.setOnClickListener(v -> startActivity(new Intent(this, MainActivity.class)));
-        if (navCategories != null) navCategories.setOnClickListener(v -> startActivity(new Intent(this, CategoriesActivity.class)));
     }
 
     private void showDeleteConfirmation() {
@@ -387,7 +393,9 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void deleteAllData() {
         getSharedPreferences("sub_prefs", MODE_PRIVATE).edit().clear().apply();
-        startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
         finish();
     }
 }
